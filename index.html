@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MPI Prakarya Kelas VII - Rekayasa Teknologi Sederhana</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!--
+=====================================================================
+ PENGHUBUNG NILAI KE SHEET (opsional, dilakukan oleh guru)
+ 1. Buat Google Sheet, lalu Extensions > Apps Script, tempel kode ini:
+
+    function doPost(e){
+      var d = JSON.parse(e.postData.contents);
+      var sh = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+      sh.appendRow([new Date(), d.nama, d.nilai, d.benar, d.total, d.tanggal]);
+      return ContentService.createTextOutput('ok');
+    }
+
+ 2. Deploy > New deployment > Web app > Who has access: Anyone.
+ 3. Salin URL Web app, tempel pada konstanta SHEET_URL di bagian <script> bawah.
+=====================================================================
+-->
+<style>
+:root{--b1:#0b2a5b;--b2:#0b3d91;--b3:#1565d8;--b4:#4aa3ff;--b5:#d6ecff;--y:#ffc83d;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--b1);
+  background:linear-gradient(180deg,#cfe8ff 0%,#eaf5ff 55%,#ffffff 100%);min-height:100vh;}
+.screen{display:none}.screen.active{display:block}
+.hidden{display:none!important}
+
+/* Tombol: satu-satunya elemen dengan efek hover */
+.btn{cursor:pointer;border:0;font-family:inherit;transition:transform .15s,box-shadow .15s,background .15s,filter .15s;user-select:none;-webkit-tap-highlight-color:transparent}
+.btn:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.08)}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+.btn-primary{background:linear-gradient(#3a8bff,#1257d6);color:#fff;border-radius:9999px;font-weight:800;box-shadow:0 4px 0 #0b3d91}
+.btn-light{background:#fff;color:var(--b2);border:2px solid #9ccbff;border-radius:14px;font-weight:700}
+.btn-yellow{background:linear-gradient(#ffd75e,#ffb800);color:var(--b1);border-radius:9999px;font-weight:800;box-shadow:0 4px 0 #c98a00}
+.card{background:#fff;border-radius:22px;box-shadow:0 8px 24px rgba(11,61,145,.13);padding:1.25rem}
+.nav-btn{background:rgba(255,255,255,.14);color:#fff;border-radius:12px;font-weight:800;padding:.5rem .7rem;font-size:.8rem;white-space:nowrap}
+.nav-btn.on{background:var(--y);color:var(--b1)}
+@media(min-width:640px){.nav-btn{font-size:.95rem;padding:.55rem 1.1rem}}
+.tab{background:#fff;border:2px solid #9ccbff;border-radius:9999px;padding:.4rem .9rem;font-weight:700;color:var(--b2);font-size:.9rem}
+.tab.on{background:var(--b3);color:#fff;border-color:var(--b3)}
+
+/* kartu klik-reveal */
+.rv{display:block;width:100%;text-align:left;background:#f3f9ff;border:2px solid #9ccbff;border-radius:18px;padding:1rem;min-height:120px;color:var(--b1)}
+.rv .rv-back{display:none;white-space:pre-line;line-height:1.55}
+.rv.open{background:#e3f1ff;border-color:var(--b3)}
+.rv.open .rv-front{display:none}.rv.open .rv-back{display:block}
+
+/* opsi / chip / blank */
+.opt{display:block;width:100%;text-align:left;background:#fff;border:2px solid #9ccbff;border-radius:14px;padding:.8rem 1rem;font-weight:700;color:var(--b1)}
+.opt.sel,.chip.sel{background:#cfe5ff;border-color:var(--b3)}
+.opt.ok,.chip.ok,.blank.ok{background:#c9f5d4;border-color:#1fa84f;color:#0b5a28}
+.opt.bad,.chip.bad,.blank.bad{background:#ffd6d6;border-color:#e03b3b;color:#8a1111}
+.chip.miss{background:#fff3c4;border-color:#e0a800}
+.chip{background:#fff;border:2px solid #9ccbff;border-radius:12px;padding:.5rem .9rem;font-weight:700;color:var(--b1)}
+.blank{display:inline-block;min-width:110px;background:#eef6ff;border:2px dashed var(--b3);border-radius:10px;padding:.15rem .7rem;font-weight:800;color:var(--b2);vertical-align:middle}
+.locked{pointer-events:none}
+.qtext{font-size:1.15rem;font-weight:700;margin:.5rem 0 1rem;line-height:1.6}
+.fb{border-radius:14px;padding:.7rem 1rem;font-weight:800;margin:1rem 0 .6rem}
+.fb-ok{background:#c9f5d4;color:#0b5a28}.fb-bad{background:#ffe3e3;color:#8a1111}
+.bar{height:12px;background:#d6ecff;border-radius:9999px;overflow:hidden}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#4aa3ff,#1257d6);border-radius:9999px;transition:width .2s}
+.mcard{height:84px;border-radius:14px;font-weight:800;font-size:.85rem;padding:.3rem;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.2}
+.mcard.back{background:linear-gradient(135deg,#3a8bff,#1257d6);color:#fff;font-size:1.6rem}
+.mcard.face{background:#fff;border:2px solid var(--b3);color:var(--b1)}
+.mcard.done{background:#c9f5d4;border:2px solid #1fa84f;color:#0b5a28}
+.shake{animation:shake .4s}
+
+/* animasi */
+@keyframes zoomIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@keyframes drift{0%{transform:translateY(105vh)}100%{transform:translateY(-20vh)}}
+.splash-title{font-size:clamp(2.4rem,9vw,5.2rem);font-weight:900;line-height:1.05;color:var(--b2);text-shadow:0 4px 0 #fff,0 8px 18px rgba(11,61,145,.25);animation:zoomIn .9s cubic-bezier(.2,1.3,.4,1) both;animation-delay:.2s}
+.splash-sub{font-weight:800;letter-spacing:.12em;color:var(--b3);font-size:clamp(.75rem,2.5vw,1rem);animation:slideUp .8s both}
+.anim-up{animation:slideUp .8s both}
+.gear-spin{display:inline-block;animation:spin 6s linear infinite}
+.pulse{animation:pulse2 1.6s ease-in-out infinite}
+.pulse:hover{animation:none}
+.bubble{position:absolute;bottom:0;border-radius:50%;background:rgba(74,163,255,.25);animation:drift linear infinite;pointer-events:none}
+.pop{animation:zoomIn .5s both}
+
+/* sertifikat */
+#cert{background:#fff;border:10px double var(--b3);border-radius:18px;padding:2rem 1.5rem;text-align:center;position:relative}
+#cert .cname{font-size:clamp(1.6rem,6vw,2.8rem);font-weight:900;color:var(--b3);border-bottom:3px solid var(--y);display:inline-block;padding:0 1rem;word-break:break-word;max-width:100%}
+@media print{
+  body{background:#fff}
+  body *{visibility:hidden}
+  #cert,#cert *{visibility:visible}
+  #cert{position:absolute;left:0;top:0;width:100%;border-width:10px}
+}
+input[type=range]{accent-color:var(--b3)}
+.txt-in{width:100%;border:3px solid #9ccbff;border-radius:14px;padding:.75rem 1rem;font-size:16px;font-weight:700;color:var(--b1);background:#fff;outline:none;font-family:inherit}
+.txt-in:focus{border-color:var(--b3);box-shadow:0 0 0 4px rgba(21,101,216,.18)}
+</style>
+</head>
+<body>
+
+<!-- ============ BAR ATAS (HOME permanen di kiri atas) ============ -->
+<header id="topbar" class="fixed top-0 inset-x-0 z-50 hidden">
+  <div class="flex items-center gap-2 px-2 py-2 shadow-lg" style="background:var(--b2)">
+    <button id="btn-home" class="btn btn-yellow px-3 py-2 text-sm sm:text-base" aria-label="Home">🏠 HOME</button>
+    <nav class="flex-1 flex gap-1 overflow-x-auto" aria-label="Menu utama">
+      <button class="btn nav-btn" data-go="beranda">BERANDA</button>
+      <button class="btn nav-btn" data-go="materi">MATERI</button>
+      <button class="btn nav-btn" data-go="simulasi">SIMULASI</button>
+      <button class="btn nav-btn" data-go="kuis">KUIS</button>
+    </nav>
+    <button id="btn-set" class="btn nav-btn text-lg" aria-label="Pengaturan">⚙️</button>
+  </div>
+  <div id="settings-panel" class="hidden absolute right-2 top-full mt-2 w-72 card">
+    <h3 class="font-extrabold mb-3">⚙️ Pengaturan</h3>
+    <button id="btn-music" class="btn btn-primary w-full py-2 mb-3">🎵 MUSIK: ON</button>
+    <label for="vol" class="font-bold text-sm">Volume: <span id="vol-val">70</span>%</label>
+    <input id="vol" type="range" min="0" max="100" value="70" class="w-full">
+  </div>
+</header>
+
+<!-- ============ SPLASH ============ -->
+<section id="s-splash" class="screen active">
+  <div class="min-h-screen flex flex-col items-center justify-center text-center px-4 relative overflow-hidden">
+    <div id="bubbles" aria-hidden="true"></div>
+    <div class="gear-spin text-7xl mb-3 relative">⚙️</div>
+    <p class="splash-sub relative">MEDIA PEMBELAJARAN INTERAKTIF • PRAKARYA KELAS VII</p>
+    <h1 class="splash-title relative mt-3">REKAYASA<br>TEKNOLOGI<br>SEDERHANA</h1>
+    <p class="anim-up relative mt-4 font-bold max-w-md" style="animation-delay:.9s">Ayo membuat dan menyelesaikan masalah dengan teknologi sederhana!</p>
+    <button id="btn-start" class="btn btn-primary relative text-3xl px-14 py-4 mt-8 pulse anim-up" style="animation-delay:1.2s">MULAI ▶</button>
+    <p class="relative mt-10 text-sm font-bold">Pengembang: Siti Asroh, S.E. • 2026</p>
+  </div>
+</section>
+
+<!-- ============ BERANDA ============ -->
+<section id="s-beranda" class="screen">
+  <div class="max-w-4xl mx-auto px-4 pt-20 pb-6">
+    <div class="card text-center pop" style="background:linear-gradient(135deg,#1565d8,#0b3d91);color:#fff">
+      <div class="text-5xl">🛠️</div>
+      <h2 class="text-2xl sm:text-3xl font-black mt-1">Selamat Datang di MPI Prakarya!</h2>
+      <p class="mt-1 font-bold">Rekayasa Membuat Teknologi Sederhana • Kelas VII SMP</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mt-4">
+      <div class="card">
+        <h3 class="font-extrabold text-lg mb-2">🎯 Tujuan Pembelajaran</h3>
+        <p>Siswa dapat membuat dan menyelesaikan masalah yang berkaitan dengan teknologi sederhana.</p>
+      </div>
+      <div class="card">
+        <h3 class="font-extrabold text-lg mb-2">✍️ Siapa namamu?</h3>
+        <label for="inp-nama" class="text-sm font-bold">Namamu akan tampil di sertifikat.</label>
+        <input id="inp-nama" class="txt-in mt-2" type="text" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Tulis nama lengkapmu...">
+      </div>
+    </div>
+
+    <h3 class="font-extrabold text-lg mt-5 mb-2">Mau mulai dari mana?</h3>
+    <div class="grid sm:grid-cols-3 gap-3">
+      <button class="btn btn-primary py-5 text-lg" data-goto="materi">📖<br>MATERI</button>
+      <button class="btn btn-primary py-5 text-lg" data-goto="simulasi">📝<br>SIMULASI</button>
+      <button class="btn btn-primary py-5 text-lg" data-goto="kuis">🎮<br>KUIS</button>
+    </div>
+
+    <div class="card mt-4 text-sm">
+      <b>Petunjuk:</b> Pelajari <b>MATERI</b>, uji pemahamanmu di <b>SIMULASI</b> (10 soal) untuk mendapat <b>sertifikat</b>, lalu mainkan 4 game di <b>KUIS</b>. Atur musik dan volume lewat tombol ⚙️ di pojok kanan atas.
+    </div>
+  </div>
+</section>
+
+<!-- ============ MATERI ============ -->
+<section id="s-materi" class="screen">
+  <div class="max-w-4xl mx-auto px-4 pt-20 pb-6">
+    <div id="materi-body"></div>
+  </div>
+</section>
+
+<!-- ============ SIMULASI ============ -->
+<section id="s-simulasi" class="screen">
+  <div class="max-w-3xl mx-auto px-4 pt-20 pb-6">
+    <div id="sim-intro" class="card text-center">
+      <div class="text-5xl">📝</div>
+      <h2 class="text-2xl font-black mt-1">Simulasi Uji Pemahaman</h2>
+      <p class="mt-2">10 soal: <b>Pilihan Ganda</b>, <b>Seret Kata (Drag the Word)</b>, dan <b>Tandai Kata (Mark the Word)</b>. Nilaimu akan dikirim ke Sheet dan kamu mendapat sertifikat di akhir.</p>
+      <div class="text-left mt-4">
+        <label for="inp-nama2" class="font-bold">Tulis namamu:</label>
+        <input id="inp-nama2" class="txt-in mt-1" type="text" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Nama lengkap...">
+        <p id="sim-err" class="text-red-600 font-bold text-sm mt-1 min-h-[1.25rem]"></p>
+      </div>
+      <button id="btn-sim-start" class="btn btn-primary text-xl px-10 py-3 mt-2">MULAI SIMULASI ▶</button>
+    </div>
+    <div id="sim-play" class="card hidden"></div>
+    <div id="sim-result" class="card text-center hidden">
+      <div class="text-6xl pop">🏁</div>
+      <h2 class="text-2xl font-black mt-1">Simulasi Selesai!</h2>
+      <p class="mt-1">Hebat, <b id="res-name"></b>!</p>
+      <p class="text-6xl font-black mt-2" style="color:var(--b3)"><span id="res-score">0</span></p>
+      <p class="font-bold">Benar <span id="res-correct">0</span> dari 10 soal</p>
+      <p id="sheet-status" class="text-sm mt-3 font-bold"></p>
+      <div class="flex flex-wrap justify-center gap-3 mt-5">
+        <button id="btn-to-cert" class="btn btn-yellow px-6 py-3 text-lg">🏆 LIHAT SERTIFIKAT</button>
+        <button id="btn-sim-again" class="btn btn-primary px-6 py-3 text-lg">ULANGI</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KUIS ============ -->
+<section id="s-kuis" class="screen">
+  <div class="max-w-4xl mx-auto px-4 pt-20 pb-6">
+    <div id="kuis-body"></div>
+  </div>
+</section>
+
+<!-- ============ SERTIFIKAT ============ -->
+<section id="s-sertifikat" class="screen">
+  <div class="max-w-3xl mx-auto px-4 pt-20 pb-6">
+    <div id="cert-empty" class="card text-center hidden">
+      <p class="font-bold">Selesaikan Simulasi terlebih dahulu untuk mendapatkan sertifikat.</p>
+      <button class="btn btn-primary px-6 py-3 mt-3" data-goto="simulasi">KE SIMULASI</button>
+    </div>
+    <div id="cert-wrap" class="hidden">
+      <div id="cert">
+        <div class="text-6xl">🏅</div>
+        <p class="font-black tracking-widest mt-1" style="color:var(--b2);font-size:1.1rem">SERTIFIKAT PENCAPAIAN</p>
+        <p class="mt-4 font-bold">Diberikan kepada</p>
+        <p class="mt-2"><span id="cert-name" class="cname"></span></p>
+        <p class="mt-4 max-w-xl mx-auto">telah menyelesaikan Simulasi Uji Pemahaman Media Pembelajaran Interaktif <b>Prakarya Kelas VII</b> dengan tema <b>Rekayasa Membuat Teknologi Sederhana</b> dengan nilai</p>
+        <p class="text-6xl font-black mt-2" style="color:var(--b3)" id="cert-score"></p>
+        <p class="font-extrabold text-lg" id="cert-pred"></p>
+        <p class="mt-5 text-sm" id="cert-date"></p>
+        <p class="mt-4 font-bold text-sm">Pengembang: Siti Asroh, S.E. • 2026</p>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3 mt-4">
+        <button id="btn-print" class="btn btn-yellow px-6 py-3">🖨️ CETAK / SIMPAN PDF</button>
+        <button class="btn btn-primary px-6 py-3" data-goto="kuis">MAIN KUIS 🎮</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="foot" class="hidden text-center text-xs font-bold py-4 opacity-80">Dikembangkan oleh Siti Asroh, S.E. © 2026</footer>
+
+<script>
+/* =================== KONFIGURASI =================== */
+// Tempel URL Web App Google Apps Script di sini agar nilai masuk ke Sheet (lihat petunjuk di atas).
+const SHEET_URL = "";
+
+/* =================== UTIL =================== */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+let TM=[]; const later=(fn,ms)=>{TM.push(setTimeout(fn,ms));}; const clearAll=()=>{TM.forEach(clearTimeout);TM=[];};
+let gameTimer=null;
+
+const S = { name:'', musicOn:true, vol:.7, sim:null, last:null };
+let prog={};
+try{ prog=JSON.parse(localStorage.getItem('mpi7_prog')||'{}'); }catch(e){}
+const saveProg=()=>{try{localStorage.setItem('mpi7_prog',JSON.stringify(prog));}catch(e){}};
+const getG=k=>prog[k]||(prog[k]={unlocked:1,stars:{}});
+const starsTxt=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+
+/* =================== AUDIO (disintesis, tanpa file) =================== */
+let ctx=null, master, musicGain, sfxGain, mTimer=null, mStep=0, mNext=0;
+const mf = m => 440*Math.pow(2,(m-69)/12);
+const MELODY=[76,79,81,79,76,74,72,74, 76,79,81,84,81,79,76,79, 77,81,84,81,77,76,74,76, 74,76,79,76,74,72,74,null];
+const BASS=[48,45,41,43];
+function initAudio(){
+  if(ctx) return;
+  try{
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    master=ctx.createGain(); musicGain=ctx.createGain(); sfxGain=ctx.createGain();
+    musicGain.connect(master); sfxGain.connect(master); master.connect(ctx.destination);
+    applyVol();
+  }catch(e){ ctx=null; }
+}
+function applyVol(){ if(!ctx) return; master.gain.value=S.vol; musicGain.gain.value=.3; sfxGain.gain.value=.8; }
+function tone(f,t,d,type,out,v){
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type=type; o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+.012); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t+d+.03);
+}
+function sched(){
+  if(!ctx) return;
+  if(mNext<ctx.currentTime) mNext=ctx.currentTime+.05;
+  while(mNext<ctx.currentTime+.3){
+    const n=MELODY[mStep]; if(n) tone(mf(n),mNext,.22,'triangle',musicGain,.5);
+    if(mStep%4===0) tone(mf(BASS[Math.floor(mStep/8)]),mNext,.45,'sine',musicGain,.6);
+    if(mStep%2===1) tone(mf(96),mNext,.03,'square',musicGain,.05);
+    mNext+=.25; mStep=(mStep+1)%32;
+  }
+}
+function startMusic(){ if(!ctx||mTimer||!S.musicOn) return; mNext=ctx.currentTime+.1; mTimer=setInterval(sched,100); }
+function stopMusic(){ clearInterval(mTimer); mTimer=null; }
+function sfx(type){
+  if(!ctx) return; const t=ctx.currentTime;
+  if(type==='click'){ tone(700,t,.07,'triangle',sfxGain,.5); tone(990,t+.05,.08,'triangle',sfxGain,.4); }
+  else if(type==='ok'){ [523,659,784].forEach((f,i)=>tone(f,t+i*.08,.18,'triangle',sfxGain,.5)); }
+  else if(type==='bad'){ tone(200,t,.25,'sawtooth',sfxGain,.22); tone(150,t+.12,.3,'sawtooth',sfxGain,.22); }
+  else if(type==='win'){ [523,659,784,1047,784,1047].forEach((f,i)=>tone(f,t+i*.12,.26,'triangle',sfxGain,.55)); }
+}
+document.addEventListener('pointerdown',()=>{ initAudio(); if(ctx&&ctx.state==='suspended') ctx.resume(); },{once:false});
+document.addEventListener('click',e=>{ if(e.target.closest('button')) sfx('click'); });
+
+/* =================== NAVIGASI =================== */
+function go(name){
+  clearAll(); clearInterval(gameTimer); gameTimer=null; curGame=null;
+  $$('.screen').forEach(e=>e.classList.remove('active'));
+  $('#s-'+name).classList.add('active');
+  $('#topbar').classList.toggle('hidden',name==='splash');
+  $('#foot').classList.toggle('hidden',name==='splash');
+  const map={beranda:'beranda',materi:'materi',simulasi:'simulasi',sertifikat:'simulasi',kuis:'kuis'};
+  $$('.nav-btn[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===map[name]));
+  $('#settings-panel').classList.add('hidden');
+  window.scrollTo(0,0);
+  if(name==='materi') renderMateri();
+  if(name==='kuis') kuisMenu();
+  if(name==='simulasi') simIntro();
+  if(name==='sertifikat') showCert();
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go],[data-goto]');
+  if(g) go(g.dataset.go||g.dataset.goto);
+  if(!e.target.closest('#settings-panel,#btn-set')) $('#settings-panel').classList.add('hidden');
+});
+$('#btn-home').addEventListener('click',()=>go('beranda'));
+$('#btn-start').addEventListener('click',()=>{ initAudio(); if(ctx&&ctx.state==='suspended') ctx.resume(); startMusic(); go('beranda'); });
+
+/* pengaturan */
+$('#btn-set').addEventListener('click',()=>$('#settings-panel').classList.toggle('hidden'));
+$('#btn-music').addEventListener('click',()=>{
+  S.musicOn=!S.musicOn;
+  $('#btn-music').textContent='🎵 MUSIK: '+(S.musicOn?'ON':'OFF');
+  if(S.musicOn) startMusic(); else stopMusic();
+});
+$('#vol').addEventListener('input',e=>{ S.vol=e.target.value/100; $('#vol-val').textContent=e.target.value; applyVol(); });
+
+/* input nama (sinkron, tidak pernah di-render ulang) */
+['#inp-nama','#inp-nama2'].forEach((sel,i,arr)=>{
+  const el=$(sel), other=$(arr[1-i]);
+  el.addEventListener('input',()=>{ S.name=el.value; if(other.value!==el.value) other.value=el.value; });
+});
+$('#inp-nama2').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); simStart(); } });
+
+/* gelembung splash */
+(function(){ const box=$('#bubbles'); for(let i=0;i<14;i++){ const b=document.createElement('span'); b.className='bubble'; const s=20+Math.random()*60; b.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${8+Math.random()*10}s;animation-delay:${-Math.random()*12}s`; box.appendChild(b);} })();
+
+/* =================== MATERI =================== */
+const MATERI=[
+ {t:'Apa Itu?',icon:'💡',intro:'Klik setiap kartu untuk membuka isinya.',cards:[
+  {e:'📘',h:'Pengertian',b:'Teknologi sederhana adalah alat atau cara kerja yang pembuatan dan penggunaannya mudah, memakai bahan yang ada di sekitar kita, dan tidak memerlukan keahlian khusus.'},
+  {e:'🔎',h:'Ciri-ciri',b:'• Bahan mudah didapat\n• Cara membuat dan memakai mudah\n• Biaya murah\n• Mudah dirawat dan diperbaiki'},
+  {e:'🌟',h:'Manfaat',b:'• Membantu pekerjaan sehari-hari\n• Menghemat tenaga dan waktu\n• Memanfaatkan barang bekas sehingga mengurangi sampah'},
+  {e:'🧠',h:'Apa itu rekayasa?',b:'Rekayasa adalah proses merancang dan membuat sesuatu untuk menyelesaikan masalah, mulai dari menemukan masalah sampai produk diuji dan diperbaiki.'}]},
+ {t:'Contoh',icon:'🧰',intro:'Teknologi sederhana ada di sekitar kita. Buka kartunya!',cards:[
+  {e:'🥣',h:'Lesung dan alu',b:'Dipakai untuk menumbuk bumbu atau biji-bijian. Bekerja dengan tenaga tangan, tanpa listrik.'},
+  {e:'✂️',h:'Pisau dan gunting',b:'Dipakai untuk memotong. Bagian yang tajam memusatkan tenaga sehingga bahan mudah terpotong.'},
+  {e:'🌬️',h:'Kincir angin mini',b:'Mengubah energi angin menjadi energi gerak. Dapat dibuat dari kertas, lidi, dan paku payung.'},
+  {e:'🚰',h:'Penyaring air botol bekas',b:'Menyaring air keruh memakai lapisan kain, arang, pasir, dan kerikil di dalam botol plastik bekas.'},
+  {e:'🪓',h:'Pengungkit (tuas)',b:'Memudahkan mengangkat atau mencabut benda, misalnya linggis dan pencabut paku.'}]},
+ {t:'Langkah Rekayasa',icon:'🪜',intro:'Enam langkah membuat teknologi sederhana. Buka satu per satu.',cards:[
+  {e:'1️⃣',h:'Identifikasi masalah',b:'Temukan masalah di sekitarmu. Contoh: air sumur keruh dan sulit dipakai.'},
+  {e:'2️⃣',h:'Cari ide dan rancang',b:'Pikirkan beberapa ide solusi, pilih yang terbaik, lalu buat sketsa lengkap dengan ukuran.'},
+  {e:'3️⃣',h:'Siapkan alat dan bahan',b:'Tulis daftar alat dan bahan, lalu kumpulkan. Utamakan barang bekas yang masih layak.'},
+  {e:'4️⃣',h:'Buat produk',b:'Kerjakan sesuai rancangan dengan urutan yang benar, rapi, dan hati-hati.'},
+  {e:'5️⃣',h:'Uji coba',b:'Coba alatmu. Periksa apakah sudah berfungsi sesuai tujuan.'},
+  {e:'6️⃣',h:'Evaluasi dan perbaikan',b:'Catat kelebihan dan kekurangan, lalu perbaiki bagian yang belum baik.'}]},
+ {t:'Proyek: Penyaring Air',icon:'🚰',intro:'Contoh proyek menyelesaikan masalah air keruh.',cards:[
+  {e:'❓',h:'Masalah',b:'Air keruh dan berbau tidak nyaman dipakai. Kita butuh alat sederhana untuk menyaringnya.'},
+  {e:'🧺',h:'Alat dan bahan',b:'• Botol plastik bekas\n• Gunting atau cutter\n• Kain atau kapas\n• Arang, pasir, kerikil\n• Wadah penampung'},
+  {e:'🔧',h:'Cara membuat',b:'1. Potong dasar botol, balik botol.\n2. Pasang kain atau kapas di mulut botol.\n3. Masukkan arang.\n4. Masukkan pasir.\n5. Masukkan kerikil.\n6. Tuang air keruh, tampung hasilnya.'},
+  {e:'⚙️',h:'Cara kerja',b:'Kerikil menahan kotoran kasar, pasir menyaring kotoran halus, arang menyerap bau dan warna, kain menahan butiran kecil yang lolos.'},
+  {e:'⚠️',h:'Catatan penting',b:'Hasil saringan sederhana belum tentu aman diminum. Masaklah sampai mendidih sebelum diminum.'}]},
+ {t:'K3 & Evaluasi',icon:'🦺',intro:'Bekerja aman dan terus memperbaiki produk.',cards:[
+  {e:'🧤',h:'Keselamatan kerja (K3)',b:'• Pakai sarung tangan saat memotong\n• Jangan bercanda dengan alat tajam\n• Rapikan alat setelah dipakai\n• Baca petunjuk sebelum bekerja'},
+  {e:'🧪',h:'Uji coba',b:'Uji coba memastikan alat bekerja sesuai tujuan. Lakukan beberapa kali agar hasilnya meyakinkan.'},
+  {e:'📋',h:'Evaluasi',b:'Evaluasi menilai kelebihan dan kekurangan produk supaya bisa diperbaiki.'},
+  {e:'🛠️',h:'Menyelesaikan masalah',b:'• Air masih keruh: perbaiki lapisan saring dan saring ulang.\n• Air mengalir lambat: longgarkan pasir atau kurangi isian.\n• Air masih berbau: tambah arang.'}]}
+];
+let mi=0;
+function renderMateri(){
+  const m=MATERI[mi], last=mi===MATERI.length-1;
+  $('#materi-body').innerHTML=`
+  <div class="flex flex-wrap gap-2 mb-4">${MATERI.map((x,k)=>`<button class="btn tab ${k===mi?'on':''}" data-page="${k}">${x.icon} ${x.t}</button>`).join('')}</div>
+  <div class="card">
+    <h2 class="text-2xl font-black mb-1">${m.icon} ${m.t}</h2>
+    <p class="text-sm mb-4">${m.intro}</p>
+    <div class="grid sm:grid-cols-2 gap-3">${m.cards.map(c=>`<button class="btn rv" data-rv>
+      <span class="rv-front"><span class="text-3xl block">${c.e}</span><b class="block text-lg">${c.h}</b><small class="block opacity-70">Klik untuk membuka</small></span>
+      <span class="rv-back"><b class="block text-lg mb-1">${c.e} ${c.h}</b>${c.b}</span></button>`).join('')}</div>
+    <p id="rv-count" class="mt-3 text-sm font-bold">Dibuka: 0/${m.cards.length}</p>
+  </div>
+  <div class="flex justify-between items-center gap-2 mt-4">
+    <button class="btn btn-light px-4 py-2" data-page="${mi-1}" ${mi===0?'disabled':''}>◀ SEBELUMNYA</button>
+    <span class="font-bold text-sm">Halaman ${mi+1} / ${MATERI.length}</span>
+    ${last?`<button class="btn btn-primary px-4 py-2" data-goto="kuis">KE KUIS ▶</button>`:`<button class="btn btn-primary px-4 py-2" data-page="${mi+1}">BERIKUTNYA ▶</button>`}
+  </div>`;
+}
+$('#materi-body').addEventListener('click',e=>{
+  const p=e.target.closest('[data-page]');
+  if(p&&!p.disabled){ mi=+p.dataset.page; renderMateri(); window.scrollTo(0,0); return; }
+  const r=e.target.closest('[data-rv]');
+  if(r){ r.classList.toggle('open'); $('#rv-count').textContent=`Dibuka: ${$$('#materi-body .rv.open').length}/${MATERI[mi].cards.length}`; }
+});
+
+/* =================== SIMULASI =================== */
+const SIM=[
+ {t:'pg',q:'Teknologi sederhana adalah teknologi yang ...',o:['mudah dibuat dan dipakai serta bahannya mudah didapat','hanya bisa dibuat di pabrik besar','memerlukan mesin dan listrik berdaya tinggi','harganya sangat mahal'],a:0},
+ {t:'drag',text:'Langkah pertama rekayasa adalah {0} masalah, lalu dilanjutkan dengan {1} rancangan atau sketsa.',ans:['mengidentifikasi','membuat'],bank:['mengidentifikasi','membuat','menjual','membuang']},
+ {t:'mark',q:'Tandai semua BAHAN yang cocok untuk membuat penyaring air sederhana!',chips:['arang','pasir','sabun','kerikil','gula','kain/kapas'],ans:['arang','pasir','kerikil','kain/kapas']},
+ {t:'pg',q:'Setelah alat selesai dibuat, langkah yang harus dilakukan adalah ...',o:['uji coba alat','langsung dijual','dibuang','disimpan tanpa dicoba'],a:0},
+ {t:'drag',text:'Pada penyaring air, {0} berfungsi menyerap bau, sedangkan {1} menyaring kotoran halus.',ans:['arang','pasir'],bank:['arang','pasir','plastik','garam']},
+ {t:'mark',q:'Tandai semua contoh teknologi sederhana!',chips:['gunting','roket','lesung','satelit','pisau'],ans:['gunting','lesung','pisau']},
+ {t:'pg',q:'Air hasil saringan masih keruh. Solusi yang paling tepat adalah ...',o:['memperbaiki lapisan saring lalu menyaring ulang','menambahkan lumpur ke dalam botol','membiarkannya saja','mengganti air dengan minyak'],a:0},
+ {t:'drag',text:'Kincir angin sederhana mengubah energi {0} menjadi energi {1}.',ans:['angin','gerak'],bank:['angin','gerak','panas','suara']},
+ {t:'mark',q:'Tandai semua perilaku keselamatan kerja (K3) yang BENAR!',chips:['memakai sarung tangan','bercanda dengan gunting','merapikan alat setelah dipakai','berlari membawa benda tajam','membaca petunjuk kerja'],ans:['memakai sarung tangan','merapikan alat setelah dipakai','membaca petunjuk kerja']},
+ {t:'pg',q:'Tujuan evaluasi produk adalah ...',o:['menemukan kelebihan dan kekurangan untuk perbaikan','mencari siapa yang salah','menghentikan proyek','membuang produk'],a:0}
+];
+const TYPE_LABEL={pg:'Pilihan Ganda',drag:'Seret Kata',mark:'Tandai Kata'};
+
+function simIntro(){
+  $('#sim-intro').classList.remove('hidden'); $('#sim-play').classList.add('hidden'); $('#sim-result').classList.add('hidden');
+  $('#inp-nama2').value=S.name; $('#sim-err').textContent='';
+}
+function simStart(){
+  if(S.name.trim().length<2){ $('#sim-err').textContent='Tulis namamu dulu ya (minimal 2 huruf).'; $('#inp-nama2').focus(); return; }
+  S.sim={i:0,correct:0};
+  $('#sim-intro').classList.add('hidden'); $('#sim-result').classList.add('hidden'); $('#sim-play').classList.remove('hidden');
+  newSimQ();
+}
+$('#btn-sim-start').addEventListener('click',simStart);
+$('#btn-sim-again').addEventListener('click',()=>{ simIntro(); window.scrollTo(0,0); });
+$('#btn-to-cert').addEventListener('click',()=>go('sertifikat'));
+
+function newSimQ(){
+  const q=SIM[S.sim.i];
+  const u={checked:false,right:false,sel:null,pick:null,marked:new Set(),placed:[]};
+  if(q.t==='pg') u.opts=shuffle(q.o.map((t,k)=>({t,ok:k===q.a})));
+  if(q.t==='drag') u.placed=new Array(q.ans.length).fill(null);
+  S.sim.q=u; drawSim();
+}
+function drawSim(){
+  const st=S.sim, q=SIM[st.i], u=st.q; let body='', ready=false, hint='';
+  if(q.t==='pg'){
+    hint='Jawaban benar: '+q.o[q.a];
+    body=`<p class="qtext">${q.q}</p><div class="grid gap-3 ${u.checked?'locked':''}">`+u.opts.map((o,k)=>{
+      let c='opt'; if(u.checked){ if(o.ok) c+=' ok'; else if(u.sel===k) c+=' bad'; } else if(u.sel===k) c+=' sel';
+      return `<button class="btn ${c}" data-opt="${k}">${String.fromCharCode(65+k)}. ${o.t}</button>`; }).join('')+`</div>`;
+  } else if(q.t==='drag'){
+    hint='Jawaban: '+q.ans.join(' dan ');
+    ready=u.placed.every(Boolean);
+    const parts=q.text.split(/\{(\d)\}/); let s='';
+    parts.forEach((p,k)=>{ if(k%2===0) s+=p; else { const w=u.placed[+p]; let c='blank'; if(u.checked) c+=(w===q.ans[+p])?' ok':' bad';
+      s+=`<button class="btn ${c}" data-blank="${p}">${w||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</button>`; } });
+    const used=new Set(u.placed);
+    body=`<p class="text-sm opacity-80">Seret kata ke kotak kosong, atau ketuk kata lalu ketuk kotaknya.</p>
+      <p class="qtext" style="line-height:3rem">${s}</p>
+      <div class="flex flex-wrap gap-2 mt-2 ${u.checked?'locked':''}">`+q.bank.map(w=>used.has(w)?'':`<button class="btn chip ${u.pick===w?'sel':''}" draggable="true" data-word="${w}">${w}</button>`).join('')+`</div>`;
+  } else {
+    hint='Jawaban benar: '+q.ans.join(', ');
+    ready=u.marked.size>0;
+    body=`<p class="qtext">${q.q}</p><p class="text-sm opacity-80 mb-2">Ketuk kata/frasa yang benar (boleh lebih dari satu).</p><div class="flex flex-wrap gap-3 ${u.checked?'locked':''}">`+q.chips.map((w,k)=>{
+      const on=u.marked.has(k), isA=q.ans.includes(w); let c='chip';
+      if(u.checked){ if(on&&isA) c+=' ok'; else if(on&&!isA) c+=' bad'; else if(!on&&isA) c+=' miss'; } else if(on) c+=' sel';
+      return `<button class="btn ${c}" data-mark="${k}">${w}</button>`; }).join('')+`</div>`;
+  }
+  let foot='';
+  if(!u.checked){ if(q.t!=='pg') foot=`<button class="btn btn-primary px-8 py-3 mt-4" data-check ${ready?'':'disabled'}>PERIKSA ✔</button>`; }
+  else foot=`<div class="fb ${u.right?'fb-ok':'fb-bad'}">${u.right?'🎉 Benar! +10 poin':'❌ Belum tepat. '+hint}</div><button class="btn btn-primary px-8 py-3" data-next>${st.i<9?'LANJUT ▶':'LIHAT HASIL 🏁'}</button>`;
+  $('#sim-play').innerHTML=`
+    <div class="flex justify-between items-center text-sm font-bold mb-2"><span>Soal ${st.i+1}/10 • ${TYPE_LABEL[q.t]}</span><span>Skor: ${st.correct*10}</span></div>
+    <div class="bar mb-3"><i style="width:${(st.i+(u.checked?1:0))*10}%"></i></div>${body}${foot}`;
+}
+function simCheck(right){ const u=S.sim.q; u.checked=true; u.right=right; if(right) S.sim.correct++; sfx(right?'ok':'bad'); drawSim(); }
+function placeWord(bi,w){ const u=S.sim.q; const old=u.placed.indexOf(w); if(old>-1) u.placed[old]=null; u.placed[bi]=w; u.pick=null; drawSim(); }
+(function(){
+  const box=$('#sim-play');
+  box.addEventListener('click',e=>{
+    const st=S.sim; if(!st) return; const q=SIM[st.i], u=st.q; if(u.checked&&!e.target.closest('[data-next]')) return;
+    const o=e.target.closest('[data-opt]');
+    if(o){ u.sel=+o.dataset.opt; simCheck(u.opts[u.sel].ok); return; }
+    const w=e.target.closest('[data-word]');
+    if(w){ u.pick=(u.pick===w.dataset.word)?null:w.dataset.word; drawSim(); return; }
+    const b=e.target.closest('[data-blank]');
+    if(b){ const bi=+b.dataset.blank; if(u.pick) placeWord(bi,u.pick); else if(u.placed[bi]){ u.placed[bi]=null; drawSim(); } return; }
+    const m=e.target.closest('[data-mark]');
+    if(m){ const k=+m.dataset.mark; if(u.marked.has(k)) u.marked.delete(k); else u.marked.add(k); drawSim(); return; }
+    if(e.target.closest('[data-check]')){
+      if(q.t==='drag') simCheck(u.placed.every((x,i)=>x===q.ans[i]));
+      else { const sel=[...u.marked].map(k=>q.chips[k]); simCheck(sel.length===q.ans.length&&sel.every(x=>q.ans.includes(x))); }
+      return;
+    }
+    if(e.target.closest('[data-next]')){ if(st.i<9){ st.i++; newSimQ(); window.scrollTo(0,0); } else finishSim(); }
+  });
+  box.addEventListener('dragstart',e=>{ const w=e.target.closest('[data-word]'); if(w){ e.dataTransfer.setData('text/plain',w.dataset.word); e.dataTransfer.effectAllowed='move'; } });
+  box.addEventListener('dragover',e=>{ if(e.target.closest('[data-blank]')) e.preventDefault(); });
+  box.addEventListener('drop',e=>{ const b=e.target.closest('[data-blank]'); if(!b) return; e.preventDefault(); const w=e.dataTransfer.getData('text/plain'); if(w) placeWord(+b.dataset.blank,w); });
+})();
+
+function finishSim(){
+  const c=S.sim.correct;
+  S.last={nama:S.name.trim(),nilai:c*10,benar:c,total:10,tanggal:new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})};
+  sfx('win');
+  $('#sim-play').classList.add('hidden'); $('#sim-result').classList.remove('hidden');
+  $('#res-name').textContent=S.last.nama; $('#res-score').textContent=S.last.nilai; $('#res-correct').textContent=c;
+  window.scrollTo(0,0);
+  sendSheet(S.last);
+}
+async function sendSheet(rec){
+  const st=$('#sheet-status');
+  try{ const log=JSON.parse(localStorage.getItem('mpi7_nilai')||'[]'); log.push(rec); localStorage.setItem('mpi7_nilai',JSON.stringify(log)); }catch(e){}
+  if(!SHEET_URL){ st.textContent='ℹ️ Nilai tersimpan di perangkat ini. (Guru: isi SHEET_URL di kode agar nilai masuk ke Sheet.)'; return; }
+  st.textContent='⏳ Mengirim nilai ke Sheet...';
+  try{
+    await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(rec)});
+    st.textContent='✅ Nilai berhasil dikirim ke Sheet.';
+  }catch(e){ st.textContent='⚠️ Gagal mengirim ke Sheet (periksa koneksi). Nilai tetap tersimpan di perangkat.'; }
+}
+
+/* =================== SERTIFIKAT =================== */
+function showCert(){
+  const r=S.last;
+  $('#cert-empty').classList.toggle('hidden',!!r); $('#cert-wrap').classList.toggle('hidden',!r);
+  if(!r) return;
+  $('#cert-name').textContent=r.nama; $('#cert-score').textContent=r.nilai;
+  $('#cert-pred').textContent='Predikat: '+(r.nilai>=85?'Sangat Baik':r.nilai>=70?'Baik':r.nilai>=55?'Cukup':'Terus Berlatih');
+  $('#cert-date').textContent='Diberikan pada '+r.tanggal;
+}
+$('#btn-print').addEventListener('click',()=>window.print());
+
+/* =================== KUIS =================== */
+const GAMES=[
+ {k:'tebak',n:'Tebak Cepat',e:'⚡',d:'Pilih jawaban benar sebelum waktu habis!'},
+ {k:'fakta',n:'Fakta atau Hoaks',e:'🕵️',d:'Tentukan pernyataan itu benar atau salah.'},
+ {k:'pasang',n:'Pasangkan Kartu',e:'🃏',d:'Cocokkan nama alat dengan fungsinya.'},
+ {k:'urut',n:'Susun Langkah',e:'🧩',d:'Urutkan langkah kerja dengan benar.'}
+];
+const TEBAK={
+ 1:{time:20,q:[
+  {q:'Teknologi sederhana adalah teknologi yang ...',o:['mudah dibuat dan bahannya mudah didapat','hanya ada di pabrik','harus memakai mesin besar','sangat mahal']},
+  {q:'Contoh teknologi sederhana adalah ...',o:['pisau dapur','satelit','roket','robot pabrik']},
+  {q:'Alat untuk menumbuk bumbu adalah ...',o:['lesung dan alu','gunting','penggaris','kincir']},
+  {q:'Langkah pertama dalam rekayasa adalah ...',o:['mengidentifikasi masalah','menjual produk','membuang bahan','mengecat produk']},
+  {q:'Bahan yang cocok untuk penyaring air adalah ...',o:['arang, pasir, dan kerikil','sabun dan gula','kertas dan lem','minyak dan garam']}]},
+ 2:{time:15,q:[
+  {q:'Setelah membuat rancangan, langkah berikutnya adalah ...',o:['menyiapkan alat dan bahan lalu membuat produk','langsung evaluasi','membuang rancangan','menjual rancangan']},
+  {q:'Fungsi arang pada penyaring air adalah ...',o:['menyerap bau dan warna','menambah rasa manis','membuat air hangat','mengubah air jadi minyak']},
+  {q:'Kincir angin sederhana mengubah energi angin menjadi ...',o:['energi gerak','energi suara','energi nuklir','energi kimia']},
+  {q:'Pelindung tangan saat memotong bahan adalah ...',o:['sarung tangan','topi','sandal','kacamata renang']},
+  {q:'Keunggulan teknologi sederhana adalah ...',o:['murah dan mudah dirawat','harus impor','sulit diperbaiki','butuh listrik besar']}]},
+ 3:{time:10,q:[
+  {q:'Tujuan uji coba produk adalah ...',o:['memastikan produk berfungsi sesuai tujuan','menghias produk','menghabiskan bahan','mencari kesalahan teman']},
+  {q:'Air hasil saringan kurang jernih. Solusinya ...',o:['perbaiki lapisan saring dan saring ulang','tambahkan lumpur','diamkan saja','campur dengan tinta']},
+  {q:'Fungsi sketsa rancangan adalah ...',o:['panduan bentuk, ukuran, dan bahan sebelum membuat','pajangan kelas','pengganti produk','bahan tambahan produk']},
+  {q:'Memanfaatkan botol bekas menjadi alat berguna termasuk prinsip ...',o:['mengguna ulang (reuse) bahan','membuang sampah','membakar sampah','membeli bahan baru']},
+  {q:'Evaluasi dilakukan untuk ...',o:['menilai kelebihan dan kekurangan produk','menghentikan proyek','menyalahkan orang lain','menyembunyikan hasil']}]}
+};
+const FAKTA={
+ 1:[['Teknologi sederhana umumnya mudah dibuat dari bahan di sekitar kita.',true,'Itu ciri utama teknologi sederhana.'],
+    ['Teknologi sederhana hanya bisa dibuat oleh ahli di pabrik besar.',false,'Siapa pun bisa membuatnya dengan bahan sederhana.'],
+    ['Lesung dan alu adalah contoh teknologi sederhana.',true,'Dipakai menumbuk tanpa listrik.'],
+    ['Teknologi sederhana selalu memakai mesin canggih.',false,'Justru tidak memerlukan mesin canggih.'],
+    ['Gunting dan pisau termasuk teknologi sederhana.',true,'Alat pemotong yang mudah dipakai.']],
+ 2:[['Mengidentifikasi masalah dilakukan sebelum membuat rancangan.',true,'Masalah dikenali dulu, baru dirancang solusinya.'],
+    ['Pasir pada penyaring air berfungsi menyaring kotoran halus.',true,'Pasir menahan butiran kotoran halus.'],
+    ['Kincir air memanfaatkan energi aliran air.',true,'Aliran air memutar kincir.'],
+    ['Uji coba tidak perlu dilakukan jika alat terlihat bagus.',false,'Tampilan bagus belum tentu berfungsi baik.'],
+    ['Bercanda dengan alat tajam tidak apa-apa asal cepat.',false,'Alat tajam dapat melukai, selalu hati-hati.']],
+ 3:[['Air hasil saringan sederhana langsung aman diminum tanpa dimasak.',false,'Harus dimasak sampai mendidih dulu.'],
+    ['Evaluasi dilakukan untuk menemukan kekurangan agar bisa diperbaiki.',true,'Itu tujuan evaluasi.'],
+    ['Rancangan yang baik memuat daftar alat, bahan, dan ukuran.',true,'Agar proses pembuatan terarah.'],
+    ['Teknologi sederhana tidak bisa dikembangkan atau dimodifikasi.',false,'Justru bisa terus diperbaiki.'],
+    ['Memanfaatkan barang bekas membantu mengurangi sampah.',true,'Barang bekas diberi fungsi baru.']]
+};
+const POOL=[['Pisau','Memotong'],['Lesung & alu','Menumbuk'],['Penggaris','Mengukur'],['Ijuk','Menyaring kotoran kasar'],['Arang','Menyerap bau'],['Pasir','Menyaring kotoran halus'],['Kincir angin','Memutar karena angin'],['Sketsa','Gambar rancangan']];
+const PAIRLV={1:[0,1,2],2:[3,4,5,6],3:[0,2,4,5,6,7]};
+const URUT={
+ 1:{t:'Urutkan langkah rekayasa teknologi sederhana!',s:['Mengidentifikasi masalah','Membuat rancangan','Membuat produk','Uji coba']},
+ 2:{t:'Urutkan langkah rekayasa yang lengkap!',s:['Mengidentifikasi masalah','Membuat rancangan','Menyiapkan alat dan bahan','Membuat produk','Uji coba dan evaluasi']},
+ 3:{t:'Urutkan langkah membuat penyaring air dari botol bekas!',s:['Potong dasar botol dan balik botol','Pasang kain atau kapas di mulut botol','Masukkan arang','Masukkan pasir','Masukkan kerikil','Tuang air keruh dan tampung hasilnya']}
+};
+
+let curKey=null, curGame=null;
+const kb=$('#kuis-body');
+function kuisMenu(){
+  clearAll(); clearInterval(gameTimer); curGame=null;
+  kb.innerHTML=`<h2 class="text-2xl font-black mb-3">🎮 Pilih Game Kuis</h2><div class="grid sm:grid-cols-2 gap-4">`+GAMES.map(g=>{
+    const p=getG(g.k), tot=Object.values(p.stars).reduce((a,b)=>a+b,0);
+    return `<div class="card text-center"><div class="text-5xl">${g.e}</div><h3 class="text-xl font-extrabold mt-1">${g.n}</h3><p class="text-sm mb-2">${g.d}</p><p class="font-bold mb-3" style="color:#c98a00">⭐ ${tot}/9</p><button class="btn btn-primary px-8 py-2" data-game="${g.k}">MAIN</button></div>`; }).join('')+`</div>`;
+}
+function levelMenu(k){
+  clearAll(); clearInterval(gameTimer); curGame=null; curKey=k;
+  const g=GAMES.find(x=>x.k===k), p=getG(k);
+  kb.innerHTML=`<div class="flex items-center gap-3 mb-4"><button class="btn btn-light px-4 py-2" data-back="menu">← GAME</button><h2 class="text-2xl font-black">${g.e} ${g.n}</h2></div>
+  <div class="grid sm:grid-cols-3 gap-4">`+[1,2,3].map(l=>{
+    const open=l<=p.unlocked, s=p.stars[l]||0;
+    return `<div class="card text-center"><p class="font-black text-xl">LEVEL ${l}</p><p class="text-xs mb-1">${['Mudah','Sedang','Sulit'][l-1]}</p><p class="text-2xl mb-3" style="color:#e0a800">${starsTxt(s)}</p>
+      <button class="btn ${open?'btn-primary':'btn-light'} px-6 py-2" data-level="${l}" ${open?'':'disabled'}>${open?'MAIN ▶':'🔒 TERKUNCI'}</button></div>`; }).join('')+`</div>
+  <p class="text-sm mt-3 text-center">Selesaikan level dengan minimal 1 bintang untuk membuka level berikutnya.</p>`;
+}
+kb.addEventListener('click',e=>{
+  const g=e.target.closest('[data-game]'); if(g){ levelMenu(g.dataset.game); return; }
+  const b=e.target.closest('[data-back]'); if(b){ b.dataset.back==='menu'?kuisMenu():levelMenu(curKey); return; }
+  const l=e.target.closest('[data-level]'); if(l&&!l.disabled){ startGame(curKey,+l.dataset.level); return; }
+  if(curGame&&curGame.click) curGame.click(e);
+});
+function head(l,right){
+  const g=GAMES.find(x=>x.k===curKey);
+  return `<div class="flex items-center justify-between gap-2 mb-3"><button class="btn btn-light px-3 py-2 text-sm" data-back="levels">← LEVEL</button><h2 class="font-black text-center">${g.e} ${g.n} • Level ${l}</h2><span class="font-bold text-sm">${right}</span></div>`;
+}
+function startGame(k,l){
+  clearAll(); clearInterval(gameTimer); curKey=k; window.scrollTo(0,0);
+  ({tebak:gTebak,fakta:gFakta,pasang:gPasang,urut:gUrut})[k](l);
+}
+function finishGame(l,stars,msg){
+  clearAll(); clearInterval(gameTimer); curGame=null;
+  const p=getG(curKey);
+  if(stars>0){ p.stars[l]=Math.max(p.stars[l]||0,stars); if(l<3&&p.unlocked<l+1) p.unlocked=l+1; saveProg(); sfx('win'); } else sfx('bad');
+  kb.innerHTML=head(l,'')+`<div class="card text-center pop"><div class="text-6xl">${stars>0?'🎉':'💪'}</div>
+    <h3 class="text-2xl font-black mt-1">${stars>0?'Level Selesai!':'Ayo coba lagi!'}</h3>
+    <p class="text-4xl mt-2" style="color:#e0a800">${starsTxt(stars)}</p><p class="font-bold mt-2">${msg}</p>
+    <div class="flex flex-wrap justify-center gap-3 mt-4">
+      <button class="btn btn-light px-5 py-2" data-level="${l}">ULANGI</button>
+      ${stars>0&&l<3?`<button class="btn btn-primary px-5 py-2" data-level="${l+1}">LEVEL BERIKUTNYA ▶</button>`:''}
+      <button class="btn btn-yellow px-5 py-2" data-back="menu">PILIH GAME</button></div></div>`;
+}
+const starsByCorrect=c=>c>=5?3:c===4?2:c===3?1:0;
+
+/* --- Game 1: Tebak Cepat --- */
+function gTebak(l){
+  const cfg=TEBAK[l], st={i:0,c:0,t:cfg.time,lock:false,opts:[]};
+  function draw(){
+    clearAll(); clearInterval(gameTimer);
+    const q=cfg.q[st.i]; st.opts=shuffle(q.o.map((t,k)=>({t,ok:k===0}))); st.t=cfg.time; st.lock=false;
+    kb.innerHTML=head(l,`Soal ${st.i+1}/5`)+`<div class="card">
+      <div class="flex justify-between text-sm font-bold mb-1"><span>⏱️ <span id="tnum">${cfg.time}</span> detik</span><span>Benar: ${st.c}</span></div>
+      <div class="bar mb-3"><i id="tbar" style="width:100%"></i></div>
+      <p class="qtext">${q.q}</p><div id="opts" class="grid gap-3">${st.opts.map((o,k)=>`<button class="btn opt" data-a="${k}">${String.fromCharCode(65+k)}. ${o.t}</button>`).join('')}</div></div>`;
+    gameTimer=setInterval(()=>{ st.t-=.1; const bar=$('#tbar'); if(bar){ bar.style.width=Math.max(0,st.t/cfg.time*100)+'%'; $('#tnum').textContent=Math.max(0,Math.ceil(st.t)); } if(st.t<=0) answer(-1); },100);
+  }
+  function answer(k){
+    if(st.lock) return; st.lock=true; clearInterval(gameTimer);
+    const ok=k>=0&&st.opts[k].ok; if(ok) st.c++;
+    sfx(ok?'ok':'bad');
+    $$('#opts .opt').forEach((b,i)=>{ if(st.opts[i].ok) b.classList.add('ok'); else if(i===k) b.classList.add('bad'); });
+    $('#opts').classList.add('locked');
+    later(()=>{ st.i++; if(st.i>=5) finishGame(l,starsByCorrect(st.c),`Benar ${st.c} dari 5 soal.`); else draw(); },1100);
+  }
+  curGame={click:e=>{ const b=e.target.closest('[data-a]'); if(b) answer(+b.dataset.a); }};
+  draw();
+}
+
+/* --- Game 2: Fakta atau Hoaks --- */
+function gFakta(l){
+  const items=FAKTA[l], st={i:0,c:0,lock:false};
+  function draw(){
+    clearAll(); st.lock=false; const it=items[st.i];
+    kb.innerHTML=head(l,`Soal ${st.i+1}/5`)+`<div class="card text-center">
+      <div class="bar mb-4"><i style="width:${st.i*20}%"></i></div><div class="text-5xl mb-2">🕵️</div>
+      <p class="qtext">${it[0]}</p><div id="fb"></div>
+      <div id="fbtn" class="grid grid-cols-2 gap-3 mt-3"><button class="btn btn-primary py-4 text-lg" data-v="1">✅ BENAR</button><button class="btn py-4 text-lg" style="background:#e04848;color:#fff;border-radius:9999px;font-weight:800;box-shadow:0 4px 0 #8a1111" data-v="0">❌ SALAH</button></div></div>`;
+  }
+  function answer(v){
+    if(st.lock) return; st.lock=true; const it=items[st.i], ok=(v===it[1]); if(ok) st.c++;
+    sfx(ok?'ok':'bad'); $('#fbtn').classList.add('locked');
+    $('#fb').innerHTML=`<div class="fb ${ok?'fb-ok':'fb-bad'}">${ok?'🎉 Tepat! ':'❌ Kurang tepat. '}${it[2]}</div>`;
+    later(()=>{ st.i++; if(st.i>=5) finishGame(l,starsByCorrect(st.c),`Benar ${st.c} dari 5 pernyataan.`); else draw(); },1700);
+  }
+  curGame={click:e=>{ const b=e.target.closest('[data-v]'); if(b) answer(+b.dataset.v===1); }};
+  draw();
+}
+
+/* --- Game 3: Pasangkan Kartu --- */
+function gPasang(l){
+  const pairs=PAIRLV[l].map(i=>POOL[i]), n=pairs.length;
+  const cards=shuffle(pairs.flatMap((p,i)=>[{pid:i,txt:p[0],tool:true},{pid:i,txt:p[1],tool:false}]));
+  const st={flip:[],done:new Set(),lock:false,mis:0};
+  function draw(){
+    kb.innerHTML=head(l,`Pasangan: ${st.done.size/2}/${n}`)+`<p class="text-center text-sm font-bold mb-3">Buka dua kartu: cocokkan <b>alat</b> dengan <b>fungsinya</b>. Salah: ${st.mis}</p>
+    <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">${cards.map((c,i)=>{
+      if(st.done.has(i)) return `<div class="mcard done">${c.txt}</div>`;
+      if(st.flip.includes(i)) return `<div class="mcard face" style="${c.tool?'':'background:#fff8e1'}">${c.txt}</div>`;
+      return `<button class="btn mcard back" data-c="${i}">❓</button>`; }).join('')}</div>`;
+  }
+  curGame={click:e=>{
+    const b=e.target.closest('[data-c]'); if(!b||st.lock) return; const i=+b.dataset.c;
+    if(st.flip.includes(i)||st.done.has(i)) return;
+    st.flip.push(i); draw();
+    if(st.flip.length===2){
+      st.lock=true; const [a,c]=st.flip;
+      if(cards[a].pid===cards[c].pid){
+        later(()=>{ st.done.add(a); st.done.add(c); st.flip=[]; st.lock=false; sfx('ok'); draw();
+          if(st.done.size===cards.length) later(()=>finishGame(l,st.mis<=n?3:st.mis<=2*n?2:1,`Semua pasangan ditemukan dengan ${st.mis} kesalahan.`),600); },450);
+      } else { st.mis++; sfx('bad'); later(()=>{ st.flip=[]; st.lock=false; draw(); },850); }
+    }
+  }};
+  draw();
+}
+
+/* --- Game 4: Susun Langkah --- */
+function gUrut(l){
+  const cfg=URUT[l], n=cfg.s.length;
+  let pool; do{ pool=shuffle(cfg.s.map((_,i)=>i)); }while(pool.every((v,i)=>v===i));
+  const st={got:0,err:0,lock:false};
+  function draw(wrong){
+    kb.innerHTML=head(l,`Salah: ${st.err}`)+`<div class="card"><p class="qtext">${cfg.t}</p>
+      <p class="text-sm mb-2">Ketuk langkah sesuai urutan, mulai dari yang pertama.</p>
+      <div class="grid gap-2 mb-4">${cfg.s.map((s,i)=>`<div class="opt ${i<st.got?'ok':''}" style="min-height:48px;${i<st.got?'':'background:#eef6ff;border-style:dashed'}">${i+1}. ${i<st.got?s:'...'}</div>`).join('')}</div>
+      <div class="flex flex-wrap gap-2 ${wrong?'shake':''}">${pool.map(i=>i<st.got?'':`<button class="btn chip" data-s="${i}">${cfg.s[i]}</button>`).join('')}</div></div>`;
+  }
+  curGame={click:e=>{
+    const b=e.target.closest('[data-s]'); if(!b||st.lock) return; const i=+b.dataset.s;
+    if(i===st.got){ st.got++; sfx('ok'); draw(); if(st.got===n){ st.lock=true; later(()=>finishGame(l,st.err===0?3:st.err<=2?2:1,`Urutan benar dengan ${st.err} kesalahan.`),700); } }
+    else { st.err++; sfx('bad'); draw(true); }
+  }};
+  draw();
+}
+</script>
+</body>
+</html>
